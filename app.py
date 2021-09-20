@@ -1,46 +1,35 @@
-import numpy as np
+from vega_datasets import data
 import streamlit as st
-import os
-from collections import Counter
-import random
-import boto3
-from boto3.dynamodb.conditions import Key, Attr
-import pandas as pd
-import plotly.express as px
+import altair as alt
 
-db = boto3.resource('dynamodb', endpoint_url='http://localhost:8000')
+def main():
+    df = load_data()
+    page = st.sidebar.selectbox("Choose a page", ["Homepage", "Exploration"])
 
-# Get and wait until the table exists.
-course_plan_table = db.Table('CoursePlan')
-course_plan_table.meta.client.get_waiter('table_exists').wait(TableName='CoursePlan')
+    if page == "Homepage":
+        st.header("This is your data explorer.")
+        st.write("Please select a page on the left.")
+        st.write(df)
+    elif page == "Exploration":
+        st.title("Data Exploration")
+        x_axis = st.selectbox("Choose a variable for the x-axis", df.columns, index=3)
+        y_axis = st.selectbox("Choose a variable for the y-axis", df.columns, index=4)
+        visualize_data(df, x_axis, y_axis)
 
-# Query / Scan
-response = course_plan_table.scan(
-    FilterExpression=Attr('Age').eq(4)
-)
-course_plans_age_4 = response['Items']
+@st.cache
+def load_data():
+    df = data.cars()
+    return df
 
+def visualize_data(df, x_axis, y_axis):
+    graph = alt.Chart(df).mark_circle(size=60).encode(
+        x=x_axis,
+        y=y_axis,
+        color='Origin',
+        tooltip=['Name', 'Origin', 'Horsepower', 'Miles_per_Gallon']
+    ).interactive()
 
-c = Counter()
-l = []
-for course_plan in course_plans_age_4:
-    c.update(course_plan['Activities'])
-    l.extend(course_plan['Activities'])
+    st.write(graph)
 
-# chart_data = pd.DataFrame(np.array(list(dict(c).items())), columns=["a"])
-
-# chart_data = pd.DataFrame(np.array(l)[:, np.newaxis], columns=["a"])
-
-df = pd.DataFrame(np.array(l)[:, np.newaxis], columns=["student activities in age 4 group"])
-fig = px.histogram(df, x="student activities in age 4 group", category_orders={"student activities in age 4 group": sorted(l)})
-
-# Designing the interface
-st.title("Streamlit + DynamoDB + Visualization")
-
-# For newline
-st.sidebar.write('\n')
-# st.write(f'{c}')
-
-st.plotly_chart(fig, use_container_width=True)
-# st.bar_chart(chart_data)
-
+if __name__ == "__main__":
+    main()≈
