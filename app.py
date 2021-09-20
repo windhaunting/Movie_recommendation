@@ -32,4 +32,4 @@ def visualize_data(df, x_axis, y_axis):
     st.write(graph)
 
 if __name__ == "__main__":
-    main()≈
+    main()
